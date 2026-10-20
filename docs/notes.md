@@ -47,3 +47,26 @@ Built and tested the first PlaceTrack backend API and pushed the Day 2 server se
 ### Tomorrow
 Continue building the PlaceTrack backend and learn the next concepts from the roadmap.
 - 
+
+## Day 6 — PostgreSQL Database Integration
+
+### Learned
+- Understood PostgreSQL, SQL, and database tables.
+- Learned CRUD operations: Create, Read, Update, and Delete.
+- Connected the Node.js/Express backend to Neon PostgreSQL using the `pg` package.
+- Used parameterized SQL queries to interact with the database.
+- Tested API endpoints using Postman.
+
+### Implemented
+- Created the companies table in PostgreSQL.
+- Added company fields: name, website, location, notes, role, status, and created_at.
+- Connected the companies controller to PostgreSQL.
+- Implemented database-backed GET, POST, PUT, and DELETE operations.
+- Verified API responses using Postman.
+
+### Bugs Fixed
+- Configured environment variables using `import "dotenv/config"` for ES modules.
+- Resolved database connection and schema issues.
+
+### Tomorrow
+- Continue improving and testing the PlaceTrack backend.
