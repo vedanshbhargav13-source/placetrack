@@ -1,4 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
+import AppError from "../utils/AppError.js";
+
+import { idSchema } from "../schemas/id.schema.js";
 
 import {
     listCompanies as fetchCompanies,
@@ -8,47 +11,15 @@ import {
     deleteCompany as removeCompany
 } from "../services/companies.service.js";
 
-function validateCompany(body) {
-    const { name, website, location, notes } = body;
-
-    if (typeof name !== "string" || name.trim() === "") {
-        return "Company name is required";
-    }
-
-    if (name.trim().length > 100) {
-        return "Company name must not exceed 100 characters";
-    }
-
-    if (website !== undefined && website !== null && typeof website !== "string") {
-        return "Website must be a string";
-    }
-
-    if (location !== undefined && location !== null && typeof location !== "string") {
-        return "Location must be a string";
-    }
-
-    if (notes !== undefined && notes !== null && typeof notes !== "string") {
-        return "Notes must be a string";
-    }
-
-    return null;
-}
 
 export const listCompanies = asyncHandler(async (req, res) => {
     const companies = await fetchCompanies();
+
     return res.status(200).json(companies);
 });
 
+
 export const createCompany = asyncHandler(async (req, res) => {
-    const error = validateCompany(req.body);
-
-    if (error) {
-        return res.status(400).json({
-            success: false,
-            message: error
-        });
-    }
-
     const company = await insertCompany(req.body);
 
     return res.status(201).json({
@@ -57,23 +28,20 @@ export const createCompany = asyncHandler(async (req, res) => {
     });
 });
 
-export const getCompany = asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid company ID"
-        });
+export const getCompany = asyncHandler(async (req, res) => {
+    const result = idSchema.safeParse(req.params.id);
+
+    if (!result.success) {
+        throw new AppError("Invalid company ID", 400);
     }
+
+    const id = result.data;
 
     const company = await getCompanyById(id);
 
     if (!company) {
-        return res.status(404).json({
-            success: false,
-            message: "Company not found"
-        });
+        throw new AppError("Company not found", 404);
     }
 
     return res.status(200).json({
@@ -82,32 +50,20 @@ export const getCompany = asyncHandler(async (req, res) => {
     });
 });
 
+
 export const updateCompany = asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
+    const result = idSchema.safeParse(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid company ID"
-        });
+    if (!result.success) {
+        throw new AppError("Invalid company ID", 400);
     }
 
-    const error = validateCompany(req.body);
-
-    if (error) {
-        return res.status(400).json({
-            success: false,
-            message: error
-        });
-    }
+    const id = result.data;
 
     const company = await editCompany(id, req.body);
 
     if (!company) {
-        return res.status(404).json({
-            success: false,
-            message: "Company not found"
-        });
+        throw new AppError("Company not found", 404);
     }
 
     return res.status(200).json({
@@ -116,23 +72,20 @@ export const updateCompany = asyncHandler(async (req, res) => {
     });
 });
 
-export const deleteCompany = asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid company ID"
-        });
+export const deleteCompany = asyncHandler(async (req, res) => {
+    const result = idSchema.safeParse(req.params.id);
+
+    if (!result.success) {
+        throw new AppError("Invalid company ID", 400);
     }
+
+    const id = result.data;
 
     const company = await removeCompany(id);
 
     if (!company) {
-        return res.status(404).json({
-            success: false,
-            message: "Company not found"
-        });
+        throw new AppError("Company not found", 404);
     }
 
     return res.status(204).send();

@@ -187,3 +187,58 @@ Route -> Controller -> Service -> PostgreSQL
 
 Separating routes, controllers, services, and database access
 makes the backend easier to maintain and test.
+
+
+## Day 9: Zod Validation, AppError & Central Error Mapping
+
+### Concepts Learned
+
+1. **Zod Validation**
+
+   * Installed Zod for server-side input validation.
+   * Created `src/schemas/company.schema.js`.
+   * Defined validation rules for company names and optional fields.
+   * Created reusable validation middleware in `src/middleware/validate.js`.
+
+2. **Custom Application Errors**
+
+   * Created `src/utils/AppError.js`.
+   * Associated application errors with HTTP status codes.
+   * Used `AppError` for invalid company IDs and missing companies.
+
+3. **Central Error Handling**
+
+   * Updated `src/middleware/errorHandler.js`.
+   * Added handling for Zod validation errors.
+   * Mapped selected PostgreSQL errors to appropriate HTTP status codes.
+   * Returned consistent JSON error responses.
+
+4. **Reusable ID Validation**
+
+   * Created `src/schemas/id.schema.js`.
+   * Used Zod to validate positive integer company IDs.
+   * Removed repeated manual ID validation logic.
+
+5. **Company Route Integration**
+
+   * Connected validation middleware to company creation and update routes.
+   * Refactored the company controller to use the service layer and `AppError`.
+
+### Architecture
+
+Request → Router → Validation Middleware → Controller → Service → PostgreSQL
+
+Errors → `asyncHandler` or validation middleware → Central Error Handler → JSON Response
+
+### Testing
+
+* Health endpoint: successful response.
+* Empty company name: 400 Bad Request.
+* Valid company creation: 201 Created.
+* Invalid company ID: 400 Bad Request.
+* Nonexistent company: 404 Not Found.
+* Unknown route: 404 Not Found.
+
+### Key Learning
+
+Zod provides reusable input validation, `AppError` represents application errors, and centralized error handling gives PlaceTrack consistent HTTP error responses.
