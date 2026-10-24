@@ -1,4 +1,12 @@
-import pool from "../db.js";
+import asyncHandler from "../utils/asyncHandler.js";
+
+import {
+    listCompanies as fetchCompanies,
+    createCompany as insertCompany,
+    getCompanyById,
+    updateCompany as editCompany,
+    deleteCompany as removeCompany
+} from "../services/companies.service.js";
 
 function validateCompany(body) {
     const { name, website, location, notes } = body;
@@ -26,29 +34,12 @@ function validateCompany(body) {
     return null;
 }
 
-export async function listCompanies(req, res, next) {
-    try {
-        const result = await pool.query(`
-            SELECT
-                id,
-                company_name AS name,
-                website,
-                location,
-                notes,
-                role,
-                status,
-                created_at
-            FROM companies
-            ORDER BY id DESC
-        `);
+export const listCompanies = asyncHandler(async (req, res) => {
+    const companies = await fetchCompanies();
+    return res.status(200).json(companies);
+});
 
-        return res.status(200).json(result.rows);
-    } catch (error) {
-        next(error);
-    }
-}
-
-export async function createCompany(req, res, next) {
+export const createCompany = asyncHandler(async (req, res) => {
     const error = validateCompany(req.body);
 
     if (error) {
@@ -58,40 +49,15 @@ export async function createCompany(req, res, next) {
         });
     }
 
-    const { name, website, location, notes } = req.body;
+    const company = await insertCompany(req.body);
 
-    try {
-        const result = await pool.query(
-            `INSERT INTO companies
-                (company_name, website, location, notes)
-             VALUES ($1, $2, $3, $4)
-             RETURNING
-                id,
-                company_name AS name,
-                website,
-                location,
-                notes,
-                role,
-                status,
-                created_at`,
-            [
-                name.trim(),
-                website ?? null,
-                location ?? null,
-                notes ?? null
-            ]
-        );
+    return res.status(201).json({
+        success: true,
+        data: company
+    });
+});
 
-        return res.status(201).json({
-            success: true,
-            data: result.rows[0]
-        });
-    } catch (error) {
-        next(error);
-    }
-}
-
-export async function getCompany(req, res, next) {
+export const getCompany = asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
@@ -101,39 +67,22 @@ export async function getCompany(req, res, next) {
         });
     }
 
-    try {
-        const result = await pool.query(
-            `SELECT
-                id,
-                company_name AS name,
-                website,
-                location,
-                notes,
-                role,
-                status,
-                created_at
-             FROM companies
-             WHERE id = $1`,
-            [id]
-        );
+    const company = await getCompanyById(id);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Company not found"
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: result.rows[0]
+    if (!company) {
+        return res.status(404).json({
+            success: false,
+            message: "Company not found"
         });
-    } catch (error) {
-        next(error);
     }
-}
 
-export async function updateCompany(req, res, next) {
+    return res.status(200).json({
+        success: true,
+        data: company
+    });
+});
+
+export const updateCompany = asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
@@ -152,51 +101,22 @@ export async function updateCompany(req, res, next) {
         });
     }
 
-    const { name, website, location, notes } = req.body;
+    const company = await editCompany(id, req.body);
 
-    try {
-        const result = await pool.query(
-            `UPDATE companies
-             SET company_name = $1,
-                 website = $2,
-                 location = $3,
-                 notes = $4
-             WHERE id = $5
-             RETURNING
-                id,
-                company_name AS name,
-                website,
-                location,
-                notes,
-                role,
-                status,
-                created_at`,
-            [
-                name.trim(),
-                website ?? null,
-                location ?? null,
-                notes ?? null,
-                id
-            ]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Company not found"
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: result.rows[0]
+    if (!company) {
+        return res.status(404).json({
+            success: false,
+            message: "Company not found"
         });
-    } catch (error) {
-        next(error);
     }
-}
 
-export async function deleteCompany(req, res, next) {
+    return res.status(200).json({
+        success: true,
+        data: company
+    });
+});
+
+export const deleteCompany = asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
@@ -206,23 +126,14 @@ export async function deleteCompany(req, res, next) {
         });
     }
 
-    try {
-        const result = await pool.query(
-            `DELETE FROM companies
-             WHERE id = $1
-             RETURNING id`,
-            [id]
-        );
+    const company = await removeCompany(id);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Company not found"
-            });
-        }
-
-        return res.status(204).send();
-    } catch (error) {
-        next(error);
+    if (!company) {
+        return res.status(404).json({
+            success: false,
+            message: "Company not found"
+        });
     }
-}
+
+    return res.status(204).send();
+});

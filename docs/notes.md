@@ -139,3 +139,51 @@ Created `server/src/db/queries.sql` with five queries:
 Established the initial relational database structure for PlaceTrack and prepared SQL queries for retrieving application, company, job, and assessment information.
 
 **Note:** The new database tables and SQL queries have been created, but dedicated API endpoints for users, jobs, applications, events, and assessments still need to be implemented.
+
+## Day 8: Express + PostgreSQL — Companies CRUD
+
+### Concepts Learned
+
+1. PostgreSQL Connection Pool
+   - Created a shared connection pool using the pg package.
+   - Configured the connection using DATABASE_URL.
+   - Centralized pool creation in src/db/pool.js.
+
+2. Parameterized SQL Queries
+   - Used placeholders such as $1, $2, and $3.
+   - Passed user-provided values separately from SQL.
+   - Reduced SQL injection risks.
+
+3. Service Layer
+   - Created src/services/companies.service.js.
+   - Moved database operations into service functions.
+   - Implemented list, create, get, update, and delete operations.
+
+4. Controller Refactoring
+   - Updated companies.controller.js to call service functions.
+   - Kept validation and HTTP responses in the controller.
+   - Separated HTTP handling from database operations.
+
+5. AsyncHandler
+   - Created src/utils/asyncHandler.js.
+   - Forwarded rejected promises to Express error middleware.
+   - Reduced repetitive try/catch blocks.
+
+### Architecture
+
+Route -> Controller -> Service -> PostgreSQL
+
+### Testing
+
+- GET all companies: 200 OK
+- GET company by ID: 200 OK
+- POST company: 201 Created
+- PUT company: 200 OK
+- DELETE company: 204 No Content
+- Invalid company ID: 400 Bad Request
+- Deleted company lookup: 404 Not Found
+
+### Key Learning
+
+Separating routes, controllers, services, and database access
+makes the backend easier to maintain and test.
