@@ -1,5 +1,7 @@
 export function errorHandler(err, req, res, next) {
-    console.error(err);
+    if (err.statusCode >= 500 || !err.statusCode) {
+    console.error(err.message);
+}
 
     let statusCode = err.statusCode || 500;
     let message = err.message || "Internal server error.";
