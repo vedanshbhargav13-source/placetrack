@@ -950,3 +950,109 @@ The tests confirmed that authenticated users could retrieve their own applicatio
 - Review all Git changes and verify that secrets are excluded before pushing to GitHub.
 
 **Day 10 successfully established the foundation for authenticated, user-specific internship application tracking in PlaceTrack.**
+
+# Day 11 — Authentication, Authorization & Profile Management
+
+## 1. Authentication Middleware
+
+Implemented JWT-based authentication using Express middleware.
+
+**File:** `src/middleware/authenticate.js`
+
+Responsibilities:
+
+* Extract JWT from the Authorization header.
+* Check the Bearer token format.
+* Verify JWT using `jsonwebtoken`.
+* Extract the user ID from `decoded.sub`.
+* Attach authenticated identity to `req.user`.
+* Reject invalid or expired tokens with HTTP 401.
+
+The authenticated request object contains:
+
+```js
+req.user = {
+    id: Number(decoded.sub)
+};
+```
+
+## 2. Object-Level Authorization (IDOR/BOLA)
+
+Implemented user-level ownership protection for company resources.
+
+**Database migration:**
+
+* Added `user_id` to the companies table.
+* Assigned ownership to existing company records.
+* Duplicated shared company and job records where necessary to preserve separate ownership.
+* Updated the existing application reference without changing its application ID.
+* Added a foreign key referencing `users(id)`.
+* Applied NOT NULL constraint.
+* Created index on `companies(user_id)`.
+
+**SQL security pattern:**
+
+```sql
+WHERE id = $1 AND user_id = $2
+```
+
+All company operations now enforce ownership:
+
+* listCompanies()
+* createCompany()
+* getCompanyById()
+* updateCompany()
+* deleteCompany()
+
+The controller passes `req.user.id` to the service layer.
+
+### Authorization flow
+
+HTTP Request
+→ Authentication Middleware
+→ JWT Verification
+→ req.user.id
+→ Controller
+→ Service
+→ PostgreSQL
+→ Authorized Response
+
+Unauthorized resources return HTTP 404.
+
+## 3. Company API Security Testing
+
+| Test                          | Expected result | Status |
+| ----------------------------- | --------------- | ------ |
+| Fetch own companies           | 200 OK          | Passed |
+| Access another user's company | 404             | Passed |
+| Update another user's company | 404             | Passed |
+| Delete another user's company | 404             | Passed |
+| Request without token         | 401             | Passed |
+| Request with invalid token    | 401             | Passed |
+
+## 4. Profile Database Design
+
+Created a new PostgreSQL table: `profiles`.
+
+Columns:
+
+* id
+* user_id
+* college
+* branch
+* graduation_year
+* cgpa
+* skills
+* github_url
+* linkedin_url
+* created_at
+* updated_at
+
+Important constraints:
+
+* `user_id` is UNIQUE and NOT NULL.
+* Foreign key references `users(id)`.
+* ON DELETE CASCADE removes the associated profile when a user is deleted.
+* CGPA CHECK constraint restricts valu
+
+
