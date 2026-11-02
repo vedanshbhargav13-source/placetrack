@@ -10,8 +10,11 @@
 
     import validate from "../middleware/validate.js";
     import { companySchema } from "../schemas/company.schema.js";
+    import authenticate from "../middleware/authenticate.js";
 
     const router = express.Router();
+
+    router.use(authenticate);
 
     router.get("/", listCompanies);
 

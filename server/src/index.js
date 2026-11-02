@@ -7,6 +7,7 @@ import companiesRouter from "./routes/companies.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import authRouter from "./routes/auth.routes.js";
 import applicationsRouter from "./routes/applications.routes.js";
+import profileRouter from "./routes/profile.routes.js";
 dotenv.config();
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(logger);
 app.use("/api/companies", companiesRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/applications", applicationsRouter);
+app.use("/api/profile", profileRouter);
 app.get("/api/health" , (req , res) => {
     res.json({
         status: "ok" , 
