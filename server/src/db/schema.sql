@@ -122,13 +122,17 @@ CREATE TABLE oa_interviews (
     scheduled_at TIMESTAMPTZ,
     status VARCHAR(30) NOT NULL DEFAULT 'Pending',
     notes TEXT,
+    score NUMERIC(8,2),
+    topics JSONB,
+    questions JSONB,
+    result VARCHAR(50),
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_oa_interviews_application
         FOREIGN KEY (application_id)
         REFERENCES applications(id)
-        ON DELETE RESTRICT,
+        ON DELETE CASCADE,
 
     CONSTRAINT chk_oa_interviews_status
         CHECK (
