@@ -11,6 +11,9 @@ import authRouter from "./routes/auth.routes.js";
 import applicationsRouter from "./routes/applications.routes.js";
 import profileRouter from "./routes/profile.routes.js";
 import jobsRouter from "./routes/jobs.routes.js";
+import interviewsRouter from "./routes/interviews.routes.js";
+import dashboardRouter from "./routes/dashboard.routes.js";
+import todayRouter from "./routes/today.routes.js";
 
 dotenv.config();
 
@@ -26,7 +29,9 @@ app.use("/api/auth", authRouter);
 app.use("/api/applications", applicationsRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/jobs", jobsRouter);
-
+app.use("/api", interviewsRouter);
+app.use("/api/dashboard", dashboardRouter);
+app.use("/api/dashboard/today", todayRouter);
 // Health check
 app.get("/api/health", (req, res) => {
     res.json({
