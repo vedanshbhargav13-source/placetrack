@@ -1,7 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 import { idSchema } from "../schemas/id.schema.js";
-
+import { jobQuerySchema } from "../schemas/jobQuery.schema.js";
 import {
     createJob as insertJob,
     getJobs,
@@ -10,13 +10,20 @@ import {
     deleteJob
 } from "../services/jobs.service.js";
 
-// GET all jobs
+// GET all jobs with search, filters, sorting and pagination
 export const listJobs = asyncHandler(async (req, res) => {
-    const jobs = await getJobs(req.user.id);
+    const queryResult = jobQuerySchema.safeParse(req.query);
+
+    if (!queryResult.success) {
+        throw new AppError("Invalid query parameters", 400);
+    }
+
+    const jobs = await getJobs(req.user.id, queryResult.data);
 
     return res.status(200).json({
         success: true,
-        data: jobs
+        data: jobs.data,
+        pagination: jobs.pagination
     });
 });
 

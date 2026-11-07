@@ -3,7 +3,47 @@ import pool from "../db.js";
 import AppError from "../utils/AppError.js";
 
 // 1. GET all applications belonging to a user
-export async function getApplicationsByUserId(userId) {
+// 1. GET applications with search, filtering, sorting and pagination
+export async function getApplicationsByUserId(userId, filters) {
+    const conditions = ["a.user_id = $1"];
+    const values = [userId];
+
+    // Search by job title or company name
+    if (filters.q) {
+        values.push(`%${filters.q}%`);
+        conditions.push(
+            `(j.job_title ILIKE $${values.length}
+              OR c.company_name ILIKE $${values.length})`
+        );
+    }
+
+    // Filter by application status
+    if (filters.status) {
+        values.push(filters.status);
+        conditions.push(`a.status = $${values.length}`);
+    }
+
+    const whereClause = conditions.join(" AND ");
+
+    // Whitelist sort columns to prevent SQL injection
+    const sortColumns = {
+        applied_at: "a.applied_at",
+        updated_at: "a.updated_at"
+    };
+
+    const sortColumn = sortColumns[filters.sort];
+    const sortOrder = filters.order.toUpperCase();
+
+    // Calculate pagination
+    const offset = (filters.page - 1) * filters.limit;
+
+    values.push(filters.limit);
+    const limitPosition = values.length;
+
+    values.push(offset);
+    const offsetPosition = values.length;
+
+    // Fetch applications
     const result = await pool.query(
         `
         SELECT
@@ -38,13 +78,37 @@ export async function getApplicationsByUserId(userId) {
         FROM applications a
         JOIN jobs j ON a.job_id = j.id
         JOIN companies c ON j.company_id = c.id
-        WHERE a.user_id = $1
-        ORDER BY a.applied_at DESC
+        WHERE ${whereClause}
+        ORDER BY ${sortColumn} ${sortOrder}, a.id DESC
+        LIMIT $${limitPosition}
+        OFFSET $${offsetPosition}
         `,
-        [userId]
+        values
     );
 
-    return result.rows;
+    // Count all matching applications (before pagination)
+    const countResult = await pool.query(
+        `
+        SELECT COUNT(*)::INTEGER AS total
+        FROM applications a
+        JOIN jobs j ON a.job_id = j.id
+        JOIN companies c ON j.company_id = c.id
+        WHERE ${whereClause}
+        `,
+        values.slice(0, -2)
+    );
+
+    const total = countResult.rows[0].total;
+
+    return {
+        data: result.rows,
+        pagination: {
+            total,
+            page: filters.page,
+            limit: filters.limit,
+            totalPages: Math.ceil(total / filters.limit)
+        }
+    };
 }
 
 

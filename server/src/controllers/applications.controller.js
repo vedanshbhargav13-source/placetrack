@@ -7,18 +7,26 @@ import {
     updateApplication,
     deleteApplication
 } from "../services/applications.service.js";
-
+import { applicationQuerySchema } from "../schemas/applicationQuery.schema.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 export const getMyApplications = asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const queryResult = applicationQuerySchema.safeParse(req.query);
 
-    const applications = await getApplicationsByUserId(userId);
+    if (!queryResult.success) {
+        throw new AppError("Invalid query parameters", 400);
+    }
+
+    const applications = await getApplicationsByUserId(
+        req.user.id,
+        queryResult.data
+    );
 
     return res.status(200).json({
         success: true,
-        count: applications.length,
-        data: applications
+        count: applications.data.length,
+        data: applications.data,
+        pagination: applications.pagination
     });
 });
 
