@@ -16,7 +16,9 @@ export const jobSchema = z.object({
     "other"
 ]).optional(),
 
-    apply_url: z.string().url().optional(),
+    source_context: z.string().trim().max(3000).nullable().optional(),
+
+    apply_url: z.string().url().refine(value => ["http:", "https:"].includes(new URL(value).protocol), "Must be an HTTP or HTTPS URL").nullable().optional(),
 
     location: z.string().optional(),
 
@@ -28,5 +30,5 @@ export const jobSchema = z.object({
 
     stipend: z.number().int().min(0).optional(),
 
-    deadline: z.iso.date().optional()
+    deadline: z.iso.date().nullable().optional()
 });

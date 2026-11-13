@@ -3,7 +3,7 @@ import { z } from "zod";
 const optionalUrl = z.string()
     .trim()
     .refine(
-        value => value === "" || z.string().url().safeParse(value).success,
+        value => value === "" || (z.string().url().safeParse(value).success && ["http:", "https:"].includes(new URL(value).protocol)),
         "Must be a valid URL"
     )
     .nullable()

@@ -11,20 +11,19 @@ import {
 
 const router = express.Router();
 
-// All interview routes require authentication
-router.use(authenticate);
+router.post("/applications/:id/interviews", authenticate, createMyInterview);
 
-router.post("/applications/:id/interviews", createMyInterview);
-
-router.get("/applications/:id/interviews", getMyInterviews);
+router.get("/applications/:id/interviews", authenticate, getMyInterviews);
 
 router.put(
     "/applications/:id/interviews/:interviewId",
+    authenticate,
     editMyInterview
 );
 
 router.delete(
     "/applications/:id/interviews/:interviewId",
+    authenticate,
     removeMyInterview
 );
 

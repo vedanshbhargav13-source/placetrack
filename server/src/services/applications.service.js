@@ -1,22 +1,29 @@
 
 import pool from "../db.js";
 import AppError from "../utils/AppError.js";
+import { matchesOpportunitySearch } from "../../../client/src/search.js";
 
 // 1. GET all applications belonging to a user
 // 1. GET applications with search, filtering, sorting and pagination
 export async function getApplicationsByUserId(userId, filters) {
+    if (filters.q?.trim()) {
+        // Student trackers are small. Searching the user's complete set keeps
+        // pagination honest and lets a typo still find the intended record.
+        const all = await getApplicationsByUserId(userId, { ...filters, q: undefined, page: 1, limit: 10000 });
+        const matching = all.data.filter(app => matchesOpportunitySearch(
+            `${app.company_name} ${app.job_title} ${app.location || ""}`,
+            filters.q
+        ));
+        const offset = (filters.page - 1) * filters.limit;
+        return {
+            data: matching.slice(offset, offset + filters.limit),
+            pagination: { total: matching.length, page: filters.page, limit: filters.limit, totalPages: Math.ceil(matching.length / filters.limit) }
+        };
+    }
     const conditions = ["a.user_id = $1"];
     const values = [userId];
 
     // Search by job title or company name
-    if (filters.q) {
-        values.push(`%${filters.q}%`);
-        conditions.push(
-            `(j.job_title ILIKE $${values.length}
-              OR c.company_name ILIKE $${values.length})`
-        );
-    }
-
     // Filter by application status
     if (filters.status) {
         values.push(filters.status);
@@ -54,10 +61,22 @@ export async function getApplicationsByUserId(userId, filters) {
             j.id AS job_id,
             j.job_title,
             j.job_type,
+            j.deadline,
+            j.apply_url,
+            j.source,
+            j.work_type,
+            j.stipend,
+            j.jd_text,
+            j.source_context,
             c.id AS company_id,
             c.company_name,
             c.website,
             c.location,
+            a.notes,
+            a.resume_label,
+            a.follow_up_due_at,
+            a.last_response_at,
+            a.waiting_on,
             COALESCE(
                 (
                     SELECT json_agg(
@@ -65,6 +84,7 @@ export async function getApplicationsByUserId(userId, filters) {
                             'id', e.id,
                             'from_status', e.from_status,
                             'to_status', e.to_status,
+                            'event_type', e.event_type,
                             'note', e.note,
                             'created_at', e.created_at
                         )
@@ -289,22 +309,19 @@ export async function updateApplicationStatus(
 
 // 4. UPDATE application details (notes and resume label)
 export async function updateApplication(userId, applicationId, data) {
-    const result = await pool.query(
-        `
-        UPDATE applications
-        SET notes = $1,
-            resume_label = $2,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = $3 AND user_id = $4
-        RETURNING *
-        `,
-        [
-            data.notes ?? null,
-            data.resume_label ?? null,
-            applicationId,
-            userId
-        ]
-    );
+    const allowed = ["notes", "resume_label", "follow_up_due_at", "last_response_at", "waiting_on"];
+    const values = [applicationId, userId];
+    const setters = [];
+    for (const field of allowed) if (Object.hasOwn(data, field)) {
+        values.push(data[field]);
+        setters.push(`${field} = $${values.length}`);
+    }
+    if (!setters.length) return null;
+    setters.push("updated_at = CURRENT_TIMESTAMP");
+    const result = await pool.query(`
+        UPDATE applications SET ${setters.join(", ")}
+        WHERE id = $1 AND user_id = $2 RETURNING *
+    `, values);
 
     return result.rows[0] ?? null;
 }

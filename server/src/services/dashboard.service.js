@@ -28,6 +28,8 @@ export async function getDashboardStats(userId) {
                         ON a.id = oi.application_id
                     WHERE a.user_id = $1
                     AND oi.round_type ILIKE '%assessment%'
+                    AND oi.status IN ('Pending', 'Scheduled')
+                    AND oi.scheduled_at >= CURRENT_TIMESTAMP
                 ),
                 0
             ) AS "oas",
@@ -40,6 +42,8 @@ export async function getDashboardStats(userId) {
                         ON a.id = oi.application_id
                     WHERE a.user_id = $1
                     AND oi.round_type NOT ILIKE '%assessment%'
+                    AND oi.status IN ('Pending', 'Scheduled')
+                    AND oi.scheduled_at >= CURRENT_TIMESTAMP
                 ),
                 0
             ) AS "interviews"

@@ -24,9 +24,11 @@ export async function createInterview(userId, applicationId, data) {
             score,
             topics,
             questions,
-            result
+            result,
+            debrief,
+            feedback
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *`,
         [
             applicationId,
@@ -37,7 +39,9 @@ export async function createInterview(userId, applicationId, data) {
             data.score ?? null,
             data.topics ? JSON.stringify(data.topics) : null,
             data.questions ? JSON.stringify(data.questions) : null,
-            data.result ?? null
+            data.result ?? null,
+            data.debrief ?? null,
+            data.feedback ?? null
         ]
     );
 
@@ -79,12 +83,14 @@ export async function updateInterview(
             score = COALESCE($5, oi.score),
             topics = COALESCE($6, oi.topics),
             questions = COALESCE($7, oi.questions),
-            result = COALESCE($8, oi.result)
+            result = COALESCE($8, oi.result),
+            debrief = COALESCE($9, oi.debrief),
+            feedback = COALESCE($10, oi.feedback)
          FROM applications a
          WHERE oi.application_id = a.id
-         AND oi.id = $9
-         AND oi.application_id = $10
-         AND a.user_id = $11
+         AND oi.id = $11
+         AND oi.application_id = $12
+         AND a.user_id = $13
          RETURNING oi.*`,
         [
             data.round_type ?? null,
@@ -95,6 +101,8 @@ export async function updateInterview(
             data.topics ? JSON.stringify(data.topics) : null,
 data.questions ? JSON.stringify(data.questions) : null,
             data.result ?? null,
+            data.debrief ?? null,
+            data.feedback ?? null,
             interviewId,
             applicationId,
             userId

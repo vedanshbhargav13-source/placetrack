@@ -9,6 +9,8 @@ import {
 } from "../services/applications.service.js";
 import { applicationQuerySchema } from "../schemas/applicationQuery.schema.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { applicationEditSchema } from "../schemas/applicationEdit.schema.js";
+import { applicationStatusSchema } from "../schemas/applicationStatus.schema.js";
 
 export const getMyApplications = asyncHandler(async (req, res) => {
     const queryResult = applicationQuerySchema.safeParse(req.query);
@@ -55,19 +57,9 @@ export const changeApplicationStatus = asyncHandler(async (req, res) => {
         throw new AppError("Invalid application ID", 400);
     }
 
-    const { status, note } = req.body;
-
-    const allowedStatuses = [
-    "Applied",
-    "OA Scheduled",
-    "Interview",
-    "Selected",
-    "Rejected"
-];
-
-if (!allowedStatuses.includes(status)) {
-    throw new AppError("Invalid application status", 400);
-}
+    const bodyResult = applicationStatusSchema.safeParse(req.body);
+    if (!bodyResult.success) throw bodyResult.error;
+    const { status, note } = bodyResult.data;
 
     const application = await updateApplicationStatus(
         req.user.id,
@@ -86,10 +78,13 @@ export const editMyApplication = asyncHandler(async (req, res) => {
     const result = idSchema.safeParse(req.params.id);
     if (!result.success) throw new AppError("Invalid application ID", 400);
 
+    const editResult = applicationEditSchema.safeParse(req.body);
+    if (!editResult.success) throw editResult.error;
+
     const application = await updateApplication(
         req.user.id,
         result.data,
-        req.body
+        editResult.data
     );
 
     if (!application) throw new AppError("Application not found", 404);

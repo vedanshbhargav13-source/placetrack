@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/db/ensure-schema.js && node src/index.js",
+    "db:setup": "node src/db/ensure-schema.js",
+    "test": "node --test test/features.test.js",
+    "test:db": "node --test test/integration.test.js"
   },
   "keywords": [],
   "author": "",

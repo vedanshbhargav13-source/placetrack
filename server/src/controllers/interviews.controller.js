@@ -2,6 +2,7 @@
 import AppError from "../utils/AppError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { idSchema } from "../schemas/id.schema.js";
+import { interviewSchema, interviewPatchSchema } from "../schemas/interview.schema.js";
 
 import {
     createInterview,
@@ -13,6 +14,8 @@ import {
 
 // 1. CREATE interview
 export const createMyInterview = asyncHandler(async (req, res) => {
+    const parsed = interviewSchema.safeParse(req.body);
+    if (!parsed.success) throw parsed.error;
     const applicationResult = idSchema.safeParse(req.params.id);
 
     if (!applicationResult.success) {
@@ -22,7 +25,7 @@ export const createMyInterview = asyncHandler(async (req, res) => {
     const interview = await createInterview(
         req.user.id,
         applicationResult.data,
-        req.body
+        parsed.data
     );
 
     return res.status(201).json({
@@ -55,6 +58,8 @@ export const getMyInterviews = asyncHandler(async (req, res) => {
 
 // 3. UPDATE interview
 export const editMyInterview = asyncHandler(async (req, res) => {
+    const parsed = interviewPatchSchema.safeParse(req.body);
+    if (!parsed.success) throw parsed.error;
     const applicationResult = idSchema.safeParse(req.params.id);
     const interviewResult = idSchema.safeParse(req.params.interviewId);
 
@@ -66,7 +71,7 @@ export const editMyInterview = asyncHandler(async (req, res) => {
         req.user.id,
         applicationResult.data,
         interviewResult.data,
-        req.body
+        parsed.data
     );
 
     if (!interview) {

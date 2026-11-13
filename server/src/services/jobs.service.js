@@ -13,10 +13,11 @@ export async function createJob(userId, data) {
             location,
             work_type,
             stipend,
-            deadline
+            deadline,
+            source_context
         )
         SELECT
-            c.id, $3, $4, $5, $6, $7, $8, $9, $10
+            c.id, $3, $4, $5, $6, $7, $8, $9, $10, $11
         FROM companies c
         WHERE c.id = $2 AND c.user_id = $1
         RETURNING *`,
@@ -30,7 +31,8 @@ export async function createJob(userId, data) {
             data.location ?? null,
             data.work_type ?? null,
             data.stipend ?? null,
-            data.deadline ?? null
+            data.deadline ?? null,
+            data.source_context ?? null
         ]
     );
 
@@ -146,7 +148,20 @@ export async function getJobById(userId, jobId) {
 
 // 4. Update a job belonging to the user
 export async function updateJob(userId, jobId, data) {
-    const result = await pool.query(
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+        const current = await client.query(
+            `SELECT j.deadline::text AS deadline FROM jobs j JOIN companies c ON c.id = j.company_id
+             WHERE j.id = $1 AND c.user_id = $2 FOR UPDATE`, [jobId, userId]
+        );
+        if (!current.rows[0]) {
+            await client.query("ROLLBACK");
+            return null;
+        }
+        const oldDeadline = current.rows[0].deadline ?? null;
+        const newDeadline = data.deadline ?? null;
+        const result = await client.query(
         `UPDATE jobs j
          SET company_id = $1,
              job_title = $2,
@@ -156,7 +171,8 @@ export async function updateJob(userId, jobId, data) {
              location = $6,
              work_type = $7,
              stipend = $8,
-             deadline = $9
+             deadline = $9,
+             source_context = $12
          FROM companies c
          WHERE j.id = $10
            AND c.id = j.company_id
@@ -179,11 +195,43 @@ export async function updateJob(userId, jobId, data) {
             data.stipend ?? null,
             data.deadline ?? null,
             jobId,
-            userId
+            userId,
+            data.source_context ?? null
         ]
-    );
+        );
 
-    return result.rows[0] ?? null;
+        if (!result.rows[0]) {
+            await client.query("ROLLBACK");
+            return null;
+        }
+
+        if (oldDeadline !== newDeadline) {
+            await client.query(`
+                UPDATE application_actions act
+                SET due_at = CASE WHEN $1::date IS NULL THEN NULL
+                                  ELSE (($1::date + act.deadline_offset_days)::timestamp AT TIME ZONE 'UTC') END,
+                    updated_at = CURRENT_TIMESTAMP
+                FROM applications a
+                WHERE act.application_id = a.id AND a.job_id = $2
+                  AND a.user_id = $3 AND act.deadline_offset_days IS NOT NULL
+                  AND act.state <> 'done'
+            `, [newDeadline, jobId, userId]);
+
+            await client.query(`
+                INSERT INTO application_events (application_id, status, from_status, to_status, note, event_type)
+                SELECT a.id, a.status, a.status, a.status, $1, 'deadline_changed'
+                FROM applications a WHERE a.job_id = $2 AND a.user_id = $3
+            `, [`Application deadline changed from ${oldDeadline ?? "not set"} to ${newDeadline ?? "not set"}; linked action dates were recalculated.`, jobId, userId]);
+        }
+        await client.query("COMMIT");
+
+        return result.rows[0];
+    } catch (error) {
+        try { await client.query("ROLLBACK"); } catch (rollbackError) { console.error("Transaction rollback failed:", rollbackError); }
+        throw error;
+    } finally {
+        client.release();
+    }
 }
 
 

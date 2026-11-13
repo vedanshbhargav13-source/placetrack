@@ -1,5 +1,5 @@
 export function errorHandler(err, req, res, next) {
-    if (err.statusCode >= 500 || !err.statusCode) {
+    if ((err.statusCode >= 500 || !err.statusCode) && err.name !== "ZodError") {
     console.error(err.message);
 }
 

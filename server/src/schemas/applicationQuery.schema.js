@@ -5,6 +5,7 @@ export const applicationQuerySchema = z.object({
     q: z.string().trim().optional(),
 
     status: z.enum([
+        "Saved",
         "Applied",
         "OA Scheduled",
         "Interview",
